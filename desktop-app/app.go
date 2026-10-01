@@ -3,29 +3,46 @@ package main
 import (
 	"context"
 	"os"
+	
+	"desktop-app/network"
+	"github.com/grandcat/zeroconf"
 )
 
-// App struct
 type App struct {
-	ctx context.Context
+	ctx           context.Context
+	networkServer *zeroconf.Server 
 }
 
-// NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	hostname := a.GetLocalHostname()
+
+	go func() {
+		server, err := network.StartBroadcasting(hostname, 8080)
+		if err != nil {
+			println("Failed to start mDNS broadcast:", err.Error())
+		}
+		a.networkServer = server 
+	}()
 }
 
-// GetLocalHostname returns the computer's name. 
 func (a *App) GetLocalHostname() string {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "Unknown-Device"
 	}
 	return hostname
+}
+
+// DiscoverNetworkDevices triggers the LAN scan from React
+func (a *App) DiscoverNetworkDevices() []network.Device {
+	devices, err := network.Discover(3)
+	if err != nil {
+		return []network.Device{}
+	}
+	return devices
 }
