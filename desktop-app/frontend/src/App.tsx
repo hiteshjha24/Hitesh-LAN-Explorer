@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import './App.css';
-import { GetLocalHostname, DiscoverNetworkDevices } from '../wailsjs/go/main/App';
+import { 
+    GetLocalHostname, 
+    DiscoverNetworkDevices, 
+    GetPairedDevices, 
+    PairWithDevice 
+} from '../wailsjs/go/main/App';
 
-// Define the shape of our device data
 interface NetworkDevice {
     hostname: string;
     ip: string;
@@ -13,28 +17,44 @@ function App() {
     const [hostname, setHostname] = useState<string>("Loading...");
     const [activeTab, setActiveTab] = useState<string>("dashboard");
     
-    // State for network discovery
-    const [devices, setDevices] = useState<NetworkDevice[]>([]);
+    const [discoveredDevices, setDiscoveredDevices] = useState<NetworkDevice[]>([]);
+    const [pairedDevices, setPairedDevices] = useState<NetworkDevice[]>([]);
     const [isScanning, setIsScanning] = useState<boolean>(false);
 
+    // Fetch initial data on load
     useEffect(() => {
         GetLocalHostname().then((result: string) => setHostname(result));
+        loadPairedDevices();
     }, []);
+
+    const loadPairedDevices = async () => {
+        const devices: any = await GetPairedDevices();
+        setPairedDevices(devices || []);
+    };
 
     const handleScanNetwork = async () => {
         setIsScanning(true);
-        setDevices([]); // Clear old results
+        setDiscoveredDevices([]); 
         
         try {
-            // Call the Go backend scanner
             const foundDevices: any = await DiscoverNetworkDevices();
-            // Map the generic response to our TypeScript interface
-            setDevices(foundDevices || []);
+            setDiscoveredDevices(foundDevices || []);
         } catch (error) {
             console.error("Failed to scan network", error);
         } finally {
             setIsScanning(false);
         }
+    };
+
+    const handlePair = async (device: NetworkDevice) => {
+        await PairWithDevice(device);
+        alert(`Paired successfully with ${device.hostname}!`);
+        loadPairedDevices(); // Refresh list
+    };
+
+    // Helper to check if a device is already paired
+    const isPaired = (hostnameToCheck: string) => {
+        return pairedDevices.some(d => d.hostname === hostnameToCheck);
     };
 
     return (
@@ -60,7 +80,6 @@ function App() {
                 {activeTab === 'dashboard' && (
                     <div>
                         <h2>Home Network Dashboard</h2>
-                        <p>Welcome to your personal private cloud.</p>
                         
                         <div className="dashboard-card">
                             <h3>🖥️ This Device (Local)</h3>
@@ -74,30 +93,46 @@ function App() {
                 
                 {activeTab === 'devices' && (
                     <div>
-                        <h2>Discovered Devices</h2>
-                        <p style={{ marginBottom: '20px', color: '#aaaaaa' }}>
-                            Scanning your local Wi-Fi for other VEDA agents...
-                        </p>
-                        
+                        <h2>Paired Devices</h2>
+                        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '40px' }}>
+                            {pairedDevices.length === 0 ? (
+                                <p style={{ color: '#aaaaaa' }}>No devices paired yet.</p>
+                            ) : (
+                                pairedDevices.map((device, i) => (
+                                    <div key={i} className="dashboard-card" style={{ marginTop: '10px' }}>
+                                        <h3 style={{ color: '#4CAF50' }}>✓ {device.hostname}</h3>
+                                        <p style={{ color: '#aaaaaa', fontSize: '14px', marginTop: '5px' }}>{device.ip}</p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <h2>Discover New Devices</h2>
                         <button 
                             onClick={handleScanNetwork} 
                             disabled={isScanning}
-                            style={{ padding: '10px 20px', cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', marginBottom: '20px' }}
+                            style={{ padding: '10px 20px', cursor: 'pointer', backgroundColor: '#333', color: 'white', border: '1px solid #555', borderRadius: '4px', margin: '15px 0' }}
                         >
                             {isScanning ? "Scanning (3s)..." : "🔍 Scan Network"}
                         </button>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {devices.length === 0 && !isScanning && (
-                                <p style={{ color: '#ff5555' }}>No devices found. Click scan to search.</p>
-                            )}
-                            
-                            {devices.map((device, index) => (
-                                <div key={index} style={{ backgroundColor: '#1e1e1e', padding: '15px', borderRadius: '6px', border: '1px solid #333' }}>
-                                    <h3 style={{ margin: '0 0 5px 0' }}>🖥️ {device.hostname}</h3>
-                                    <p style={{ margin: 0, color: '#aaaaaa', fontSize: '14px' }}>
-                                        IP: {device.ip} | Port: {device.port}
-                                    </p>
+                            {discoveredDevices.map((device, index) => (
+                                <div key={index} style={{ backgroundColor: '#1e1e1e', padding: '15px', borderRadius: '6px', border: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <h3 style={{ margin: '0 0 5px 0' }}>🖥️ {device.hostname}</h3>
+                                        <p style={{ margin: 0, color: '#aaaaaa', fontSize: '14px' }}>IP: {device.ip}</p>
+                                    </div>
+                                    {!isPaired(device.hostname) ? (
+                                        <button 
+                                            onClick={() => handlePair(device)}
+                                            style={{ padding: '8px 15px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                        >
+                                            Pair Device
+                                        </button>
+                                    ) : (
+                                        <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>Paired</span>
+                                    )}
                                 </div>
                             ))}
                         </div>

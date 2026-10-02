@@ -9,3 +9,11 @@ export function DiscoverNetworkDevices() {
 export function GetLocalHostname() {
   return window['go']['main']['App']['GetLocalHostname']();
 }
+
+export function GetPairedDevices() {
+  return window['go']['main']['App']['GetPairedDevices']();
+}
+
+export function PairWithDevice(arg1) {
+  return window['go']['main']['App']['PairWithDevice'](arg1);
+}
