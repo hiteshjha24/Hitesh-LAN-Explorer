@@ -6,6 +6,8 @@ import (
 
 	"desktop-app/network"
 	"desktop-app/security"
+	"desktop-app/system" // Import the new system module
+
 	"github.com/grandcat/zeroconf"
 )
 
@@ -23,13 +25,11 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	hostname := a.GetLocalHostname()
 
-	// 1. Load or Generate Cryptographic Identity
 	pubKey, err := security.LoadOrGenerateIdentity()
 	if err == nil {
 		a.myPublicKey = pubKey
 	}
 
-	// 2. Start mDNS Broadcast
 	go func() {
 		server, err := network.StartBroadcasting(hostname, 8080)
 		if err != nil {
@@ -47,7 +47,6 @@ func (a *App) GetLocalHostname() string {
 	return hostname
 }
 
-// Network functions
 func (a *App) DiscoverNetworkDevices() []network.Device {
 	devices, err := network.Discover(3)
 	if err != nil {
@@ -56,11 +55,15 @@ func (a *App) DiscoverNetworkDevices() []network.Device {
 	return devices
 }
 
-// Security functions exposed to React
 func (a *App) GetPairedDevices() []security.PairedDevice {
 	return security.GetPairedDevices()
 }
 
 func (a *App) PairWithDevice(device security.PairedDevice) error {
 	return security.SavePairedDevice(device)
+}
+
+// NEW: Expose System Stats to React
+func (a *App) GetSystemStats() system.SystemStats {
+	return system.GetStats()
 }

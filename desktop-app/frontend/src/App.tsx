@@ -4,7 +4,8 @@ import {
     GetLocalHostname, 
     DiscoverNetworkDevices, 
     GetPairedDevices, 
-    PairWithDevice 
+    PairWithDevice,
+    GetSystemStats
 } from '../wailsjs/go/main/App';
 
 interface NetworkDevice {
@@ -13,23 +14,65 @@ interface NetworkDevice {
     port: number;
 }
 
+interface SystemStats {
+    cpu_usage: number;
+    ram_total: number;
+    ram_used: number;
+    disk_total: number;
+    disk_used: number;
+}
+
+// Helper to convert Bytes to Gigabytes
+const formatGB = (bytes: number) => {
+    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+};
+
 function App() {
     const [hostname, setHostname] = useState<string>("Loading...");
     const [activeTab, setActiveTab] = useState<string>("dashboard");
     
+    // State for network discovery & pairing
     const [discoveredDevices, setDiscoveredDevices] = useState<NetworkDevice[]>([]);
     const [pairedDevices, setPairedDevices] = useState<NetworkDevice[]>([]);
     const [isScanning, setIsScanning] = useState<boolean>(false);
+    
+    // State for live stats
+    const [stats, setStats] = useState<SystemStats | null>(null);
 
-    // Fetch initial data on load
     useEffect(() => {
+        // 1. Get Hostname
         GetLocalHostname().then((result: string) => setHostname(result));
+        
+        // 2. Load Paired Devices
         loadPairedDevices();
+
+        // 3. Initial fetch for stats
+        fetchStats();
+
+        // 4. Polling loop: fetch stats every 2 seconds for the live dashboard
+        const interval = setInterval(() => {
+            fetchStats();
+        }, 2000);
+
+        return () => clearInterval(interval); // Cleanup on unmount
     }, []);
 
+    const fetchStats = async () => {
+        try {
+            const sysStats: any = await GetSystemStats();
+            setStats(sysStats);
+        } catch (error) {
+            console.error("Failed to fetch stats", error);
+        }
+    };
+
     const loadPairedDevices = async () => {
-        const devices: any = await GetPairedDevices();
-        setPairedDevices(devices || []);
+        try {
+            const devices: any = await GetPairedDevices();
+            setPairedDevices(devices || []);
+        } catch (error) {
+            console.error("Failed to load paired devices", error);
+        }
     };
 
     const handleScanNetwork = async () => {
@@ -40,19 +83,22 @@ function App() {
             const foundDevices: any = await DiscoverNetworkDevices();
             setDiscoveredDevices(foundDevices || []);
         } catch (error) {
-            console.error("Failed to scan network", error);
+            console.error("Failed to scan", error);
         } finally {
             setIsScanning(false);
         }
     };
 
     const handlePair = async (device: NetworkDevice) => {
-        await PairWithDevice(device);
-        alert(`Paired successfully with ${device.hostname}!`);
-        loadPairedDevices(); // Refresh list
+        try {
+            await PairWithDevice(device);
+            alert(`Paired successfully with ${device.hostname}!`);
+            loadPairedDevices();
+        } catch (error) {
+            console.error("Failed to pair", error);
+        }
     };
 
-    // Helper to check if a device is already paired
     const isPaired = (hostnameToCheck: string) => {
         return pairedDevices.some(d => d.hostname === hostnameToCheck);
     };
@@ -77,20 +123,58 @@ function App() {
             </div>
 
             <div className="main-content">
+                {/* --- DASHBOARD TAB --- */}
                 {activeTab === 'dashboard' && (
                     <div>
                         <h2>Home Network Dashboard</h2>
                         
-                        <div className="dashboard-card">
+                        <div className="dashboard-card" style={{ width: '400px' }}>
                             <h3>🖥️ This Device (Local)</h3>
-                            <p style={{ marginTop: '10px', color: '#aaaaaa' }}>
-                                Hostname: <span style={{ color: '#fff' }}>{hostname}</span>
-                            </p>
-                            <p style={{ color: '#4CAF50', marginTop: '5px' }}>● Online</p>
+                            <p style={{ marginTop: '5px', color: '#aaaaaa' }}>{hostname}</p>
+                            
+                            {stats ? (
+                                <div style={{ marginTop: '20px' }}>
+                                    {/* CPU Bar */}
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                            <span>CPU Usage</span>
+                                            <span>{stats.cpu_usage.toFixed(1)}%</span>
+                                        </div>
+                                        <div style={{ width: '100%', backgroundColor: '#333', height: '8px', borderRadius: '4px', marginTop: '5px' }}>
+                                            <div style={{ width: `${stats.cpu_usage}%`, backgroundColor: '#4CAF50', height: '100%', borderRadius: '4px', transition: 'width 0.5s' }}></div>
+                                        </div>
+                                    </div>
+
+                                    {/* RAM Bar */}
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                            <span>RAM</span>
+                                            <span>{formatGB(stats.ram_used)} / {formatGB(stats.ram_total)}</span>
+                                        </div>
+                                        <div style={{ width: '100%', backgroundColor: '#333', height: '8px', borderRadius: '4px', marginTop: '5px' }}>
+                                            <div style={{ width: `${(stats.ram_used / stats.ram_total) * 100}%`, backgroundColor: '#2196F3', height: '100%', borderRadius: '4px', transition: 'width 0.5s' }}></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Storage Bar */}
+                                    <div style={{ marginBottom: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                            <span>Storage (Root/C:)</span>
+                                            <span>{formatGB(stats.disk_used)} / {formatGB(stats.disk_total)}</span>
+                                        </div>
+                                        <div style={{ width: '100%', backgroundColor: '#333', height: '8px', borderRadius: '4px', marginTop: '5px' }}>
+                                            <div style={{ width: `${(stats.disk_used / stats.disk_total) * 100}%`, backgroundColor: '#FFC107', height: '100%', borderRadius: '4px' }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p style={{ marginTop: '20px', color: '#aaaaaa' }}>Loading hardware stats...</p>
+                            )}
                         </div>
                     </div>
                 )}
                 
+                {/* --- DEVICES TAB --- */}
                 {activeTab === 'devices' && (
                     <div>
                         <h2>Paired Devices</h2>
@@ -139,6 +223,7 @@ function App() {
                     </div>
                 )}
                 
+                {/* --- SETTINGS TAB --- */}
                 {activeTab === 'settings' && <h2>Settings</h2>}
             </div>
         </div>

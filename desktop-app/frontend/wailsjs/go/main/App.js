@@ -14,6 +14,10 @@ export function GetPairedDevices() {
   return window['go']['main']['App']['GetPairedDevices']();
 }
 
+export function GetSystemStats() {
+  return window['go']['main']['App']['GetSystemStats']();
+}
+
 export function PairWithDevice(arg1) {
   return window['go']['main']['App']['PairWithDevice'](arg1);
 }

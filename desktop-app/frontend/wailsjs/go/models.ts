@@ -40,3 +40,28 @@ export namespace security {
 
 }
 
+export namespace system {
+	
+	export class SystemStats {
+	    cpu_usage: number;
+	    ram_total: number;
+	    ram_used: number;
+	    disk_total: number;
+	    disk_used: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new SystemStats(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cpu_usage = source["cpu_usage"];
+	        this.ram_total = source["ram_total"];
+	        this.ram_used = source["ram_used"];
+	        this.disk_total = source["disk_total"];
+	        this.disk_used = source["disk_used"];
+	    }
+	}
+
+}
+
