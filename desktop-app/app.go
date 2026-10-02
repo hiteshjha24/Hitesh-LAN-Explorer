@@ -7,6 +7,7 @@ import (
 	"desktop-app/network"
 	"desktop-app/security"
 	"desktop-app/fs"
+	"desktop-app/api"
 	"desktop-app/system" // Import the new system module
 
 	"github.com/grandcat/zeroconf"
@@ -31,13 +32,17 @@ func (a *App) startup(ctx context.Context) {
 		a.myPublicKey = pubKey
 	}
 
+	// 1. Start broadcasting this device on the network
 	go func() {
 		server, err := network.StartBroadcasting(hostname, 8080)
 		if err != nil {
 			println("Failed to start mDNS broadcast:", err.Error())
 		}
-		a.networkServer = server
+		a.networkServer = server 
 	}()
+
+	// 2. Start the secure LAN API Server to listen for paired devices
+	api.StartServer("8080")
 }
 
 func (a *App) GetLocalHostname() string {
@@ -76,3 +81,4 @@ func (a *App) GetRootPaths() []fs.FileNode {
 func (a *App) ListDirectory(path string) ([]fs.FileNode, error) {
 	return fs.ListDirectory(path)
 }
+
