@@ -6,6 +6,7 @@ import (
 
 	"desktop-app/network"
 	"desktop-app/security"
+	"desktop-app/fs"
 	"desktop-app/system" // Import the new system module
 
 	"github.com/grandcat/zeroconf"
@@ -66,4 +67,12 @@ func (a *App) PairWithDevice(device security.PairedDevice) error {
 // NEW: Expose System Stats to React
 func (a *App) GetSystemStats() system.SystemStats {
 	return system.GetStats()
+}
+
+func (a *App) GetRootPaths() []fs.FileNode {
+	return fs.GetRootPaths()
+}
+
+func (a *App) ListDirectory(path string) ([]fs.FileNode, error) {
+	return fs.ListDirectory(path)
 }

@@ -14,8 +14,16 @@ export function GetPairedDevices() {
   return window['go']['main']['App']['GetPairedDevices']();
 }
 
+export function GetRootPaths() {
+  return window['go']['main']['App']['GetRootPaths']();
+}
+
 export function GetSystemStats() {
   return window['go']['main']['App']['GetSystemStats']();
+}
+
+export function ListDirectory(arg1) {
+  return window['go']['main']['App']['ListDirectory'](arg1);
 }
 
 export function PairWithDevice(arg1) {

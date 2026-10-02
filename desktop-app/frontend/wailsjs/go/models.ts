@@ -1,3 +1,28 @@
+export namespace fs {
+	
+	export class FileNode {
+	    name: string;
+	    path: string;
+	    size: number;
+	    is_dir: boolean;
+	    mod_time: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new FileNode(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.size = source["size"];
+	        this.is_dir = source["is_dir"];
+	        this.mod_time = source["mod_time"];
+	    }
+	}
+
+}
+
 export namespace network {
 	
 	export class Device {
