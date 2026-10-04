@@ -3,5 +3,10 @@
     "hostname": "Hitesh-LAPTOP",
     "ip": "192.168.1.4",
     "port": 8080
+  },
+  {
+    "hostname": "Hitesh-LAPTOP-Agent",
+    "ip": "192.168.1.4",
+    "port": 8081
   }
 ]

@@ -20,6 +20,24 @@ export namespace fs {
 	        this.mod_time = source["mod_time"];
 	    }
 	}
+	export class ManifestItem {
+	    rel_path: string;
+	    size: number;
+	    mod_time: number;
+	    is_dir: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ManifestItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.rel_path = source["rel_path"];
+	        this.size = source["size"];
+	        this.mod_time = source["mod_time"];
+	        this.is_dir = source["is_dir"];
+	    }
+	}
 
 }
 

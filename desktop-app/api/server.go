@@ -81,6 +81,23 @@ func StartServer(port string) {
 		http.ServeFile(w, r, filePath)
 	}))
 
+	// --- NEW: FOLDER SYNC MANIFEST ENDPOINT ---
+	mux.HandleFunc("/api/fs/manifest", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Query().Get("path")
+		if path == "" {
+			http.Error(w, "Path is required", http.StatusBadRequest)
+			return
+		}
+		
+		manifest, err := fs.GenerateManifest(path)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		
+		json.NewEncoder(w).Encode(manifest)
+	}))
+
 	// --- NEW: UPLOAD ENDPOINT ---
 	mux.HandleFunc("/api/fs/upload", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

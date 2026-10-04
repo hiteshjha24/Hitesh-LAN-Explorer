@@ -82,3 +82,7 @@ func (a *App) ListDirectory(path string) ([]fs.FileNode, error) {
 	return fs.ListDirectory(path)
 }
 
+// NEW: Generate local folder manifest for Sync comparison
+func (a *App) GenerateLocalManifest(path string) ([]fs.ManifestItem, error) {
+	return fs.GenerateManifest(path)
+}

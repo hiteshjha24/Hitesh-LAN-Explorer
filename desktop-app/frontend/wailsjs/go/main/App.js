@@ -6,6 +6,10 @@ export function DiscoverNetworkDevices() {
   return window['go']['main']['App']['DiscoverNetworkDevices']();
 }
 
+export function GenerateLocalManifest(arg1) {
+  return window['go']['main']['App']['GenerateLocalManifest'](arg1);
+}
+
 export function GetLocalHostname() {
   return window['go']['main']['App']['GetLocalHostname']();
 }
